@@ -8,6 +8,9 @@ use Sunder\Http\Request\Response;
 
 class Router
 {
+    const string DYNAMIC_ROUTE_PART_START = '[';
+    const string DYNAMIC_ROUTE_PART_END   = ']';
+
     /**
      * All registered routes
      * stores here
@@ -41,7 +44,7 @@ class Router
      */
     public function addRoute(string $method, string $route, callable $cb): void
     {
-        if (!$this->routes[$method]) {
+        if (!isset($this->routes[$method])) {
             $this->routes[$method] = [];
         }
 
@@ -67,23 +70,55 @@ class Router
      */
     public function run(Request $request): Response
     {
-        $handler = $this->_404Handler;
-
-        if ($this->routeExists($request->method, $request->uri)) {
-            $handler = $this->routes[$request->method][$request->uri];
-        }
+        $handler = $this->findRoute($request) ?? $this->_404Handler;
 
         return $handler($request);
     }
 
-    /**
-     * Check if route exists
-     * @param string $method
-     * @param string $uri
-     * @return bool
-     */
-    public function routeExists(string $method, string $uri): bool
+    private function findRoute(Request &$request): ?callable
     {
-        return isset($this->routes[$method][$uri]);
+        // TODO: Improve route search
+        if (!isset($this->routes[$request->method])) {
+            return null;
+        }
+
+        $methodRoutes = $this->routes[$request->method];
+
+        $requestURI = explode('/', $request->uri);
+        foreach ($methodRoutes as $route => $handler) {
+            $routeURI = explode('/', $route);
+
+            if (count($requestURI) !== count($routeURI)) {
+                continue;
+            }
+
+            $isCurrentRoute = true;
+            $routeData = [];
+
+            foreach ($routeURI as $k => $routePart) {
+                $requestURIPart = $requestURI[$k];
+
+                if ($this->routePartIsDynamic($routePart)) {
+                    $routeData[substr($routePart, 1, -1)] = $requestURIPart;
+                } else if ($routePart !== $requestURIPart) {
+                    $isCurrentRoute = false;
+                    break;
+                }
+            }
+
+            if ($isCurrentRoute) {
+                $request = new Request($request->method, $request->uri, $routeData, $request->data);
+                return $handler;
+            }
+        }
+
+        return null;
+    }
+
+    private function routePartIsDynamic(string $part): bool
+    {
+        return
+               str_starts_with($part, self::DYNAMIC_ROUTE_PART_START)
+            && str_ends_with($part, self::DYNAMIC_ROUTE_PART_END);
     }
 }

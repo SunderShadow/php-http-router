@@ -7,9 +7,9 @@ readonly class Request
     public function __construct(
         public string $method,
         public string $uri,
+        public array  $routeData = [],
         public array  $data = []
     )
     {
-
     }
 }

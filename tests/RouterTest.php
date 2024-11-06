@@ -21,6 +21,53 @@ class RouterTest extends TestCase
         $this->assertTrue((bool) $response->body);
     }
 
+    public function test_add_dynamic_routes()
+    {
+        $router = new Router();
+        $router->addRoute('GET', '/some/[dynamic]/route/[otherDynamic]', function (Request $request) {
+            return new Response(
+                status: 200,
+                body:   json_encode($request->routeData),
+            );
+        });
+
+        $response = $router->run(new Request('GET', '/some/really_dynamic/route/123'));
+        $data = json_decode($response->body, true);
+
+        $this->assertEquals('really_dynamic', $data['dynamic']);
+        $this->assertEquals('123', $data['otherDynamic']);
+    }
+
+    public function test_add_dynamic_routes_request_uri_longer_than_defined()
+    {
+        $router = new Router();
+        $router->addRoute('GET', '/some/[dynamic]/route/[otherDynamic]', function (Request $request) {
+            return new Response(
+                status: 200,
+                body:   json_encode($request->routeData),
+            );
+        });
+
+        $response = $router->run(new Request('GET', '/some/really_dynamic/route/123/zxc'));
+
+        $this->assertEquals(404, $response->status);
+    }
+
+    public function test_add_dynamic_routes_request_uri_shorten_than_defined()
+    {
+        $router = new Router();
+        $router->addRoute('GET', '/some/[dynamic]/route/[otherDynamic]/zxc', function (Request $request) {
+            return new Response(
+                status: 200,
+                body:   json_encode($request->routeData),
+            );
+        });
+
+        $response = $router->run(new Request('GET', '/some/really_dynamic/route/123'));
+
+        $this->assertEquals(404, $response->status);
+    }
+
     public function test_404_route()
     {
         $router = new Router();
