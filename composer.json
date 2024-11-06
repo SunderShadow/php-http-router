@@ -1,0 +1,24 @@
+{
+    "name": "sunder/http-router",
+    "description": "PHP REST API router",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Sunder\\Http\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Sander",
+            "email": "sunundershadow@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+      "php": "^8.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    }
+}
